@@ -23,6 +23,15 @@ class PortoneWebView extends StatefulWidget {
   final String redirectUrl;
   final Set<Factory<OneSequenceGestureRecognizer>>? gestureRecognizers;
 
+  /// Called when the system back gesture would leave this screen (the web view
+  /// has no history left). Return `false` to stay.
+  ///
+  /// Without this, a back gesture pops the route directly, bypassing any
+  /// confirmation the host app shows from its own back button — on Android the
+  /// system back is always available, so an in-progress verification can be
+  /// abandoned by a stray gesture.
+  final Future<bool> Function()? onWillLeave;
+
   PortoneWebView({
     this.appBar,
     this.initialChild,
@@ -31,6 +40,7 @@ class PortoneWebView extends StatefulWidget {
     required this.onError,
     required this.redirectUrl,
     this.gestureRecognizers,
+    this.onWillLeave,
   });
 
   @override
@@ -62,6 +72,8 @@ class _PortoneWebViewState extends State<PortoneWebView> {
         if (controller != null && await controller.canGoBack()) {
           await controller.goBack();
         } else {
+          final onWillLeave = widget.onWillLeave;
+          if (onWillLeave != null && !await onWillLeave()) return;
           if (context.mounted) {
             Navigator.of(context).pop();
           }
